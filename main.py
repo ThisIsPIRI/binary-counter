@@ -1,6 +1,7 @@
-import tensorflow as tf
+import matplotlib.pyplot as plt
 import numpy as np
 from random import shuffle
+import tensorflow as tf
 
 
 def toArray(binString):
@@ -21,6 +22,25 @@ def onehotToIndices(arr):
 			secondVal = val
 			secondI = i
 	return (firstI, firstVal), (secondI, secondVal)
+
+
+def buildRnn(sequence_length, string_size, num_hidden=16, data_type=tf.float32):
+	input_t = tf.placeholder(data_type, (None, sequence_length, 1))
+	expected_t = tf.one_hot(tf.placeholder(tf.int32, None), sequence_length + 1)
+	cell_t = tf.nn.rnn_cell.LSTMCell(num_hidden)
+	# Unroll the cells. The dimension of the output will be (batch_size, string_size, num_hidden)
+	rnn_output_t, train_state_t = tf.nn.dynamic_rnn(cell_t, input_t, dtype=data_type)
+	# Extract the last timesteps' outputs. The dimension will be (batch_size, num_hidden)
+	transposed_temp = tf.transpose(rnn_output_t, [1, 0, 2])
+	last_timestep_t = tf.gather(transposed_temp, int(transposed_temp.get_shape()[0]) - 1)
+	# Set up a dense layer to process the final output
+	dense_weight_t = tf.Variable(tf.truncated_normal((num_hidden, string_size + 1))) # int(expected_t.get_shape()[1] can be also used instead of string_size + 1
+	dense_bias_t = tf.Variable(0.1)
+	prediction_t = tf.nn.softmax(tf.matmul(last_timestep_t, dense_bias_t + dense_weight_t))
+	# Set up the error function and optimizer
+	error_t = tf.reduce_sum(expected_t * tf.log(tf.clip_by_value(prediction_t, 1e-10, 1.0)))
+	minimizer_t = tf.train.AdamOptimizer().minimize(error_t)
+	return input_t, expected_t, prediction_t, error_t, minimizer_t
 
 
 # https://monik.in/a-noobs-guide-to-implementing-rnn-lstm-using-tensorflow/
@@ -50,36 +70,26 @@ def main():
 
 	# Build the model
 	# Train set
-	train_input_t = tf.placeholder(tf.float32, (None, sequence_length, 1))
-	train_expected_t = tf.one_hot(train_expected_d, sequence_length + 1) # TODO: separate data insertion from model building
-	cell_t = tf.nn.rnn_cell.LSTMCell(num_hidden)
-	# Unroll the cells. The dimension of the output will be (batch_size, string_size, num_hidden)
-	train_rnn_output_t, train_state_t = tf.nn.dynamic_rnn(cell_t, train_input_t, dtype=data_type)
-	# Extract the last timesteps' outputs. The dimension will be (batch_size, num_hidden)
-	transposed_temp = tf.transpose(train_rnn_output_t, [1, 0, 2])
-	train_last_timestep_t = tf.gather(transposed_temp, int(transposed_temp.get_shape()[0]) - 1)
-	# Set up a dense layer to process the final output
-	train_dense_weight_t = tf.Variable(tf.truncated_normal((num_hidden, string_size + 1))) # int(train_expected_t.get_shape()[1] can be also used instead of string_size + 1
-	train_dense_bias_t = tf.Variable(0.1)
-	train_prediction_t = tf.nn.softmax(tf.matmul(train_last_timestep_t, train_dense_bias_t + train_dense_weight_t))
-	# Set up the error function and optimizer
-	train_error_t = tf.reduce_sum(train_expected_t * tf.log(tf.clip_by_value(train_prediction_t, 1e-10, 1.0)))
-	train_minimizer_t = tf.train.AdamOptimizer().minimize(train_error_t)
+	train_input_t, train_expected_t, train_prediction_t, train_error_t, train_minimizer_t = buildRnn(sequence_length, string_size)
 
 	# Test set
-	test_input_t = tf.placeholder(tf.float32, (None, sequence_length, 1))
-	test_expected_t = tf.one_hot(test_expected_d, sequence_length + 1)
+	test_input_t, test_expected_t, test_prediction_t, test_error_t, _ = buildRnn(sequence_length, string_size)
 	print("tensors generated")
 
 	# Train the model
-	data = {train_input_t: train_input_d, test_input_t: test_input_d}
+	data = {train_input_t: train_input_d, train_expected_t: train_expected_d, test_input_t: test_input_d, test_expected_t: test_expected_d}
 	with tf.Session() as sess:
 		sess.run(tf.global_variables_initializer())
 		# TODO: make this stochastic
+		errors = []
 		for epoch in range(101):
+			errors.append(sess.run(train_error_t))
 			sess.run(train_minimizer_t, data)
 			# Export to Tensorboard
-			if epoch % 100 == 0: tf.summary.FileWriter("/board").add_graph(sess.graph)
+			if epoch % 100 == 0:
+				print(errors)
+				plt.plot(errors)
+				tf.summary.FileWriter("/board").add_graph(sess.graph)
 		print("training complete")
 		print("prediction: ")
 		predicted = onehotToIndices(sess.run(train_prediction_t, data)[0])

@@ -26,8 +26,9 @@ def onehotToIndices(arr):
 
 def buildRnn(sequence_length, string_size, num_hidden=16, data_type=tf.float32):
 	input_t = tf.placeholder(data_type, (None, sequence_length, 1))
-	expected_t = tf.one_hot(tf.placeholder(tf.int32, None), sequence_length + 1)
-	cell_t = tf.nn.rnn_cell.LSTMCell(num_hidden)
+	expected_t = tf.placeholder(tf.int32, None)
+	expected_onehot_t = tf.one_hot(expected_t, sequence_length + 1)
+	cell_t = tf.nn.rnn_cell.GRUCell(num_hidden)
 	# Unroll the cells. The dimension of the output will be (batch_size, string_size, num_hidden)
 	rnn_output_t, train_state_t = tf.nn.dynamic_rnn(cell_t, input_t, dtype=data_type)
 	# Extract the last timesteps' outputs. The dimension will be (batch_size, num_hidden)
@@ -38,7 +39,8 @@ def buildRnn(sequence_length, string_size, num_hidden=16, data_type=tf.float32):
 	dense_bias_t = tf.Variable(0.1)
 	prediction_t = tf.nn.softmax(tf.matmul(last_timestep_t, dense_bias_t + dense_weight_t))
 	# Set up the error function and optimizer
-	error_t = tf.reduce_sum(expected_t * tf.log(tf.clip_by_value(prediction_t, 1e-10, 1.0)))
+	# clip_by_value is needed to avoid getting inf from negative log.
+	error_t = tf.reduce_sum(-expected_onehot_t * tf.log(tf.clip_by_value(prediction_t, 1e-10, 1.0)) - ((1 - expected_onehot_t) * tf.log(1 - (tf.clip_by_value(prediction_t, 1e-10, 1.0)))))
 	minimizer_t = tf.train.AdamOptimizer().minimize(error_t)
 	return input_t, expected_t, prediction_t, error_t, minimizer_t
 
@@ -69,35 +71,44 @@ def main():
 	print("datasets organized")
 
 	# Build the model
-	# Train set
 	train_input_t, train_expected_t, train_prediction_t, train_error_t, train_minimizer_t = buildRnn(sequence_length, string_size)
 
-	# Test set
-	test_input_t, test_expected_t, test_prediction_t, test_error_t, _ = buildRnn(sequence_length, string_size)
-	print("tensors generated")
-
 	# Train the model
-	data = {train_input_t: train_input_d, train_expected_t: train_expected_d, test_input_t: test_input_d, test_expected_t: test_expected_d}
+	train_feed = {train_input_t: train_input_d, train_expected_t: train_expected_d}
 	with tf.Session() as sess:
 		sess.run(tf.global_variables_initializer())
 		# TODO: make this stochastic
 		errors = []
+		# https://stackoverflow.com/a/33050617
+		plt.ion()
+		plt.show()
 		for epoch in range(101):
-			errors.append(sess.run(train_error_t))
-			sess.run(train_minimizer_t, data)
+			errors.append(sess.run(train_error_t, train_feed))
+			sess.run(train_minimizer_t, train_feed)
 			# Export to Tensorboard
-			if epoch % 100 == 0:
+			if epoch % 50 == 0:
 				print(errors)
 				plt.plot(errors)
-				tf.summary.FileWriter("/board").add_graph(sess.graph)
+				plt.draw()
+				plt.pause(0.001)
 		print("training complete")
 		print("prediction: ")
-		predicted = onehotToIndices(sess.run(train_prediction_t, data)[0])
+		predicted = onehotToIndices(sess.run(train_prediction_t, train_feed)[0])
 		print(f"{predicted[0][0]} ones, {predicted[0][1] * 100}% sure")
 		print(f"{predicted[1][0]} ones, {predicted[1][1] * 100}% sure")
 		print("expected: ")
-		print(train_input_d[0])
 		print(train_expected_d[0])
+		tf.summary.FileWriter("/board").add_graph(sess.graph)
+	input("Complete examining the figure?")
+	plt.ioff()
+	plt.close()
+
+	# Test set
+	tf.reset_default_graph()
+	test_input_t, test_expected_t, test_prediction_t, test_error_t, _ = buildRnn(sequence_length, string_size)
+	print("tensors generated")
+
+	test_feed = {test_input_t: test_input_d, test_expected_t: test_expected_d}
 
 # When predicting, the result is an ndarray of dimension (batch_size, string_size, num_hidden). You can pass it to a dense network for final processing.
 # The axes represent output from each dataset, each timestep(after each character in this case) and each neuron.

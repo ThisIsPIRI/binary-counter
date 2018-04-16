@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 from random import shuffle
 import tensorflow as tf
 
@@ -57,6 +58,7 @@ def main():
 	num_hidden = 16
 	input_dim = 1
 	data_type = tf.float32
+	save_dir = "/tfData"
 
 	all_possible = ['{0:020b}'.format(i) for i in range(2 ** string_size)] # Generate all 20-char long sequences of 0s and 1s
 	shuffle(all_possible)
@@ -75,6 +77,7 @@ def main():
 
 	# Train the model
 	train_feed = {train_input_t: train_input_d, train_expected_t: train_expected_d}
+	saver = tf.train.Saver()
 	with tf.Session() as sess:
 		sess.run(tf.global_variables_initializer())
 		# TODO: make this stochastic
@@ -82,7 +85,7 @@ def main():
 		# https://stackoverflow.com/a/33050617
 		plt.ion()
 		plt.show()
-		for epoch in range(101):
+		for epoch in range(51):
 			errors.append(sess.run(train_error_t, train_feed))
 			sess.run(train_minimizer_t, train_feed)
 			# Export to Tensorboard
@@ -98,9 +101,10 @@ def main():
 		print(f"{predicted[1][0]} ones, {predicted[1][1] * 100}% sure")
 		print("expected: ")
 		print(train_expected_d[0])
-		tf.summary.FileWriter("/board").add_graph(sess.graph)
-	input("Complete examining the figure?")
+		tf.summary.FileWriter(save_dir).add_graph(sess.graph)
+		saver.save(sess, save_dir + '/' + "rnnTestModel.ckpt")
 	plt.ioff()
+	input("Complete examining the figure?") # Let the user interact with the figure
 	plt.close()
 
 	# Test set

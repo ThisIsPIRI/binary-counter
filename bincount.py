@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
-
+import random
 import tensorflow as tf
 
-from binaryUtil import toArray, onehotToIndices
+from binaryUtil import toArray, onehotToIndices, show
 
 
 class BinaryTensors:
@@ -50,6 +50,8 @@ class BinaryCounter:
 		return input_t, expected_t, prediction_t, error_t, minimizer_t
 
 	def train(self, train_ds, test_ds, tensors, epochs=101, batch_size=-1, load_model=True):
+		if batch_size == -1:
+			batch_size = len(train_ds.input_d) // 8
 		input_t, expected_t, prediction_t, error_t, minimizer_t = tensors.get()
 		saver = tf.train.Saver()
 		with tf.Session() as sess:
@@ -57,29 +59,46 @@ class BinaryCounter:
 				saver.restore(sess, self.SAVE_DIR + "/rnnTestModel.ckpt")
 			else:
 				sess.run(tf.global_variables_initializer())
-			errors = []
 			# https://stackoverflow.com/a/33050617
 			plt.ion()
 			plt.show()
-			feed = {input_t: train_ds.input_d, expected_t: train_ds.expected_d}
+			batchStep = 0
+			train_errors = []
+			test_errors = []
+			train_feed = {input_t: train_ds.input_d[batchStep:batchStep + batch_size], expected_t: train_ds.expected_d[batchStep:batchStep + batch_size]}
+			test_feed = {input_t: test_ds.input_d, expected_t: test_ds.expected_d}
 			for epoch in range(epochs):
-				errors.append(sess.run(error_t, feed))
-				sess.run(minimizer_t, feed)
+				train_feed = {input_t: train_ds.input_d[batchStep:batchStep + batch_size], expected_t: train_ds.expected_d[batchStep:batchStep + batch_size]}
+				batchStep = (batchStep + batch_size) % len(train_ds.input_d)
+				train_errors.append(sess.run(error_t, feed_dict=train_feed))
+				sess.run(minimizer_t, train_feed)
 				# Verify
 				if epoch % 50 == 0:
-					print(errors)
-					plt.plot(errors)
-					plt.draw()
-					plt.pause(0.001)
+					# Plot train errors
+					show(train_errors, 1)
+					# Calculate and plot test errors
+					test_errors.append(sess.run(error_t, feed_dict=test_feed))
+					show(test_errors, 2)
 			print("training complete")
-			print("prediction: ")
-			predicted = onehotToIndices(sess.run(prediction_t, feed)[0])
-			print(f"{predicted[0][0]} ones, {predicted[0][1] * 100}% sure")
-			print(f"{predicted[1][0]} ones, {predicted[1][1] * 100}% sure")
-			print("expected: ")
-			print(train_ds.expected_d[0])
+			print("train samples:")
+			self.printPred(sess, expected_t, prediction_t, train_feed)
+			print("test samples:")
+			self.printPred(sess, expected_t, prediction_t, test_feed)
 			tf.summary.FileWriter(self.SAVE_DIR).add_graph(sess.graph)
 			saver.save(sess, self.SAVE_DIR + '/' + "rnnTestModel.ckpt")
 		plt.ioff()
-		input("Complete examining the figure?")  # Let the user interact with the figure
+		input("Complete examining the figures?")  # Let the user interact with the figure
 		plt.close()
+
+	@staticmethod
+	def printPred(sess, expected_t, prediction_t, feed, howMany=2):
+		length = len(feed[expected_t])
+		indices = list(range(length))
+		random.shuffle(indices)
+		for i in range(howMany):
+			print("prediction: ")
+			predicted = onehotToIndices(sess.run(prediction_t, feed)[indices[i]])
+			print(f"{predicted[0][0]} ones, {predicted[0][1] * 100}% sure")
+			print(f"{predicted[1][0]} ones, {predicted[1][1] * 100}% sure")
+			print("expected: ")
+			print(feed[expected_t][indices[i]])

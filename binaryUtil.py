@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 def toArray(binString):
@@ -19,3 +20,10 @@ def onehotToIndices(arr):
 			secondVal = val
 			secondI = i
 	return (firstI, firstVal), (secondI, secondVal)
+
+
+def show(data, inFigure):
+	plt.figure(inFigure)
+	plt.plot(data)
+	plt.draw()
+	plt.pause(0.001)

@@ -2,7 +2,7 @@ import numpy as np
 from random import shuffle
 import tensorflow as tf
 
-from bincount import BinaryCounter, BinaryTensors
+from bincount import BinaryCounter, BinaryDatasets, BinaryTensors
 from binaryUtil import toArray
 
 
@@ -31,6 +31,8 @@ def main():
 	test_input_d = [toArray(i) for i in all_possible[train_batch_size:train_batch_size + test_batch_size]] # Take test_batch_size of that again for the test set
 	test_expected_d = [np.sum(i) for i in test_input_d]
 	print("datasets organized")
+	train_ds = BinaryDatasets(train_input_d, train_expected_d)
+	test_ds = BinaryDatasets(test_input_d, test_expected_d)
 
 	# Build the model
 	counter = BinaryCounter()
@@ -42,7 +44,7 @@ def main():
 		yn = input("Choice:")
 		if yn == 't':
 			load = False if input("Load models?(y/n): ") == "n" else True
-			counter.train(train_input_d, train_expected_d, tensors, load_model=load)
+			counter.train(train_ds, test_ds, tensors, load_model=load)
 		elif yn == 'E':
 			break
 

@@ -3,15 +3,16 @@ from random import shuffle
 import tensorflow as tf
 
 from bincount import BinaryCounter, BinaryDatasets, BinaryTensors
-from binaryUtil import toArray
+from binaryUtil import onehotToIndices, toArray
 
 
 # https://monik.in/a-noobs-guide-to-implementing-rnn-lstm-using-tensorflow/
 # Naming conventions:
 # (name)_d or t for raw data or tensors
 def main():
+	DEBUG_MODE = False
 	string_size = 20
-	temp_dividend = 100
+	temp_dividend = 120 if DEBUG_MODE else 20
 	train_batch_size = 2 ** string_size // temp_dividend
 	test_batch_size = 2 ** string_size // temp_dividend
 	sequence_length = 20
@@ -20,19 +21,20 @@ def main():
 	data_type = tf.float32
 	save_dir = "/tfData"
 
-	all_possible = ['{0:020b}'.format(i) for i in range(2 ** string_size)] # Generate all 20-char long sequences of 0s and 1s
-	shuffle(all_possible)
-	print("all possibilities generated")
+	if 'y' == input("Generate datasets?(y/n): "):
+		all_possible = ['{0:020b}'.format(i) for i in range(2 ** string_size)] # Generate all 20-char long sequences of 0s and 1s
+		shuffle(all_possible)
+		print("all possibilities generated")
 
-	# Input data dimensions : [batch size, sequence_length, input_dim]
-	train_input_d = [toArray(i) for i in all_possible[:train_batch_size]] # Take test_batch_size of that randomly as training data
-	train_expected_d = [np.sum(i) for i in train_input_d]
-	# No validation set.
-	test_input_d = [toArray(i) for i in all_possible[train_batch_size:train_batch_size + test_batch_size]] # Take test_batch_size of that again for the test set
-	test_expected_d = [np.sum(i) for i in test_input_d]
-	print("datasets organized")
-	train_ds = BinaryDatasets(train_input_d, train_expected_d)
-	test_ds = BinaryDatasets(test_input_d, test_expected_d)
+		# Input data dimensions : [batch size, sequence_length, input_dim]
+		train_input_d = [toArray(i) for i in all_possible[:train_batch_size]] # Take test_batch_size of that randomly as training data
+		train_expected_d = [np.sum(i) for i in train_input_d]
+		# No validation set.
+		test_input_d = [toArray(i) for i in all_possible[train_batch_size:train_batch_size + test_batch_size]] # Take test_batch_size of that again for the test set
+		test_expected_d = [np.sum(i) for i in test_input_d]
+		print("datasets organized")
+		train_ds = BinaryDatasets(train_input_d, train_expected_d)
+		test_ds = BinaryDatasets(test_input_d, test_expected_d)
 
 	# Build the model
 	counter = BinaryCounter()
@@ -40,11 +42,20 @@ def main():
 
 	# Train the model
 	while True:
-		print("Train the model(t), exit(E)")
+		print("Train the model(t), predict with it(p), or exit(E)")
 		yn = input("Choice:")
 		if yn == 't':
 			load = False if input("Load models?(y/n): ") == "n" else True
-			counter.train(train_ds, test_ds, tensors, load_model=load)
+			if DEBUG_MODE:
+				counter.train(train_ds, test_ds, tensors, load_model=load)
+			else:
+				counter.train(train_ds, test_ds, tensors, epochs=1501, load_model=load)
+		elif yn == "p":
+			toCount = input(f"The {string_size} letters-long binary string to count:")
+			predicted = onehotToIndices(counter.predict(tensors.input_t, tensors.prediction_t, toCount)[0])
+			print("prediction: ")
+			print(f"{predicted[0][0]} ones, {predicted[0][1] * 100}% sure")
+			print(f"{predicted[1][0]} ones, {predicted[1][1] * 100}% sure")
 		elif yn == 'E':
 			break
 

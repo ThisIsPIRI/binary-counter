@@ -26,7 +26,7 @@ class BinaryDatasets:
 		return self.input_d, self.expected_d
 
 
-class BinaryCounter:
+class BinaryCounter: # TODO: change into an Estimator
 	SAVE_DIR = "/tfData"
 
 	def buildRnn(self, sequence_length, string_size, num_hidden=16, data_type=tf.float32):
@@ -89,6 +89,12 @@ class BinaryCounter:
 		plt.ioff()
 		input("Complete examining the figures?")  # Let the user interact with the figure
 		plt.close()
+
+	def predict(self, input_t, predict_t, toPredict):
+		saver = tf.train.Saver()
+		with tf.Session() as sess:
+			saver.restore(sess, self.SAVE_DIR + "/rnnTestModel.ckpt")
+			return sess.run(predict_t, feed_dict={input_t: [[[int(c)] for c in toPredict]]})
 
 	@staticmethod
 	def printPred(sess, expected_t, prediction_t, feed, howMany=2):

@@ -17,6 +17,7 @@ class BinaryTensors:
 		return self.input_t, self.expected_t, self.prediction_t, self.error_t, self.minimizer_t
 	input_t = expected_t = prediction_t = error_t = minimizer_t = None
 
+
 class BinaryDatasets:
 	def __init__(self, input_d, expected_d):
 		self.input_d = input_d
@@ -29,7 +30,7 @@ class BinaryDatasets:
 class BinaryCounter: # TODO: change into an Estimator
 	SAVE_DIR = "/tfData"
 
-	def buildRnn(self, sequence_length, string_size, num_hidden=16, data_type=tf.float32):
+	def buildRnn(self, sequence_length, num_hidden=16, data_type=tf.float32):
 		input_t = tf.placeholder(data_type, (None, sequence_length, 1))
 		expected_t = tf.placeholder(tf.int32, None)
 		expected_onehot_t = tf.one_hot(expected_t, sequence_length + 1)

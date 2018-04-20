@@ -11,7 +11,6 @@ from binaryUtil import onehotToIndices, toArray
 # (name)_d or t for raw data or tensors
 def main():
 	DEBUG_MODE = False
-	string_size = 20
 	temp_dividend = 120 if DEBUG_MODE else 20
 	train_batch_size = 2 ** string_size // temp_dividend
 	test_batch_size = 2 ** string_size // temp_dividend
@@ -22,7 +21,7 @@ def main():
 	save_dir = "/tfData"
 
 	if 'y' == input("Generate datasets?(y/n): "):
-		all_possible = ['{0:020b}'.format(i) for i in range(2 ** string_size)] # Generate all 20-char long sequences of 0s and 1s
+		all_possible = ['{0:020b}'.format(i) for i in range(2 ** sequence_length)] # Generate all 20-char long sequences of 0s and 1s
 		shuffle(all_possible)
 		print("all possibilities generated")
 
@@ -38,7 +37,7 @@ def main():
 
 	# Build the model
 	counter = BinaryCounter()
-	tensors = BinaryTensors(*counter.buildRnn(sequence_length, string_size))
+	tensors = BinaryTensors(*counter.buildRnn(sequence_length))
 
 	# Train the model
 	while True:

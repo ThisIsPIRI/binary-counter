@@ -7,7 +7,7 @@ from binaryUtil import toArray
 
 
 def input_fn(features, labels, batch_size):
-	dataset = tf.data.Dataset.from_tensor_slices((dict({"features), labels))
+	dataset = tf.data.Dataset.from_tensor_slices((features, labels))
 	dataset = dataset.shuffle(1000).repeat().batch(batch_size)
 	return dataset.make_one_shot_iterator().get_next()
 

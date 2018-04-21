@@ -16,8 +16,32 @@ def binary_model(features, labels, mode, params):
 	last_timestep_t = tf.gather(transposed_temp, int(transposed_temp.get_shape()[0]) - 1)
 	# Set up a dense layer to process the final output
 	prediction_t = tf.layers.dense(last_timestep_t, (None, sequence_length, num_hidden), activation=tf.nn.relu)
-	# Set up the error function and optimizer
-	# clip_by_value is needed to avoid getting inf from negative log.
-	error_t = tf.reduce_sum(-expected_onehot_t * tf.log(tf.clip_by_value(prediction_t, 1e-10, 1.0)) - ((1 - expected_onehot_t) * tf.log(1 - (tf.clip_by_value(prediction_t, 1e-10, 1.0)))))
-	minimizer_t = tf.train.AdamOptimizer().minimize(error_t)
+	predicted_classes = tf.argmax(prediction_t, 1)
+
+	# Predict the results
+	if mode == tf.estimator.ModeKeys.PREDICT:
+		return tf.estimator.EstimatorSpec(mode, predictions={
+			"class_ids": predicted_classes[:, tf.newaxis],
+			"probabilities": tf.nn.softmax(prediction_t),
+			"logits": prediction_t
+		})
+
+	# Set up the error function
+	error_t = tf.losses.log_loss(expected_onehot_t, prediction_t)
+
+	# Evaluate the errors
+	if mode == tf.estimator.ModeKeys.EVAL:
+		accuracy = tf.metrics.accuracy(labels=labels, predictions=predicted_classes)
+		metrics = {"accuracy": accuracy}
+		# Register the accuracy to Tensorboard
+		tf.summary.scalar("accuracy", accuracy[1])
+		return tf.estimator.EstimatorSpec(mode, loss=error_t, eval_metric_ops=metrics)
+
+	# Set up the optimizer
+	minimizer_t = tf.train.AdamOptimizer().minimize(error_t, global_step=tf.train.get_global_step())
+
+	#Train the model
+	if mode == tf.estimator.ModeKeys.TRAIN:
+		return tf.estimator.EstimatorSpec(mode, loss=error_t, train_op=minimizer_t)
+
 	return input_t, expected_t, prediction_t, error_t, minimizer_t

@@ -12,9 +12,10 @@ from binaryUtil import onehotToIndices, toArray
 def main():
 	DEBUG_MODE = False
 	temp_dividend = 120 if DEBUG_MODE else 20
-	train_batch_size = 2 ** string_size // temp_dividend
-	test_batch_size = 2 ** string_size // temp_dividend
 	sequence_length = 20
+	train_batch_size = 2 ** sequence_length // temp_dividend
+	test_batch_size = 2 ** sequence_length // temp_dividend
+
 	num_hidden = 16
 	input_dim = 1
 	data_type = tf.float32

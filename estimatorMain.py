@@ -3,7 +3,7 @@ from random import shuffle
 import tensorflow as tf
 
 from binestimator import binary_model
-from binaryUtil import toArray
+from binaryUtil import toList
 
 
 def input_fn(features, labels, batch_size):
@@ -14,7 +14,7 @@ def input_fn(features, labels, batch_size):
 
 def main():
 	DEBUG_MODE = True
-	temp_dividend = 120 if DEBUG_MODE else 20
+	temp_dividend = 10000 if DEBUG_MODE else 20
 	sequence_length = 20
 	train_batch_size = 2 ** sequence_length // temp_dividend
 	test_batch_size = 2 ** sequence_length // temp_dividend
@@ -26,10 +26,10 @@ def main():
 	print("all possibilities generated")
 
 	# Input data dimensions : [batch size, sequence_length, input_dim]
-	train_input_d = [toArray(i) for i in all_possible[:train_batch_size]]  # Take test_batch_size of that randomly as training data
-	train_expected_d = [np.sum(i) for i in train_input_d]
+	train_input_d = [toList(i) for i in all_possible[:train_batch_size]]  # Take train_batch_size of that randomly as training data
+	train_expected_d = [[sum(x) for x in y] for y in train_input_d]
 	# No validation set.
-	test_input_d = [toArray(i) for i in all_possible[train_batch_size:train_batch_size + test_batch_size]]  # Take test_batch_size of that again for the test set
+	test_input_d = [toList(i) for i in all_possible[train_batch_size:train_batch_size + test_batch_size]]  # Take test_batch_size of that again for the test set
 	test_expected_d = [np.sum(i) for i in test_input_d]
 	print("datasets organized")
 

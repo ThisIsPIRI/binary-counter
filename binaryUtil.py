@@ -7,6 +7,10 @@ def toArray(binString):
 	return np.array([[int(i)] for i in binString])
 
 
+def toList(binString): # Exists because of https://stackoverflow.com/a/49931506
+	return [[int(i)] for i in binString]
+
+
 def onehotToIndices(arr):
 	firstI = secondI = -1
 	firstVal = secondVal = -99999

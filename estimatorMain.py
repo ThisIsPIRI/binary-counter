@@ -27,7 +27,7 @@ def main():
 
 	# Input data dimensions : [batch size, sequence_length, input_dim]
 	train_input_d = [toList(i) for i in all_possible[:train_batch_size]]  # Take train_batch_size of that randomly as training data
-	train_expected_d = [[sum(x) for x in y] for y in train_input_d]
+	train_expected_d = [int(sum([sum(x) for x in y])) for y in train_input_d]
 	# No validation set.
 	test_input_d = [toList(i) for i in all_possible[train_batch_size:train_batch_size + test_batch_size]]  # Take test_batch_size of that again for the test set
 	test_expected_d = [np.sum(i) for i in test_input_d]

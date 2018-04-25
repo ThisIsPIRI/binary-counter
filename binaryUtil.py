@@ -8,7 +8,7 @@ def toArray(binString):
 
 
 def toList(binString): # Exists because of https://stackoverflow.com/a/49931506
-	return [[int(i)] for i in binString]
+	return [[float(i)] for i in binString]
 
 
 def onehotToIndices(arr):

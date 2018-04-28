@@ -6,7 +6,7 @@ from binestimator import binary_model
 from binaryUtil import toList
 
 
-def input_fn(features, labels, batch_size):
+def input_fn(features, labels, batch_size=32):
 	dataset = tf.data.Dataset.from_tensor_slices((features, labels))
 	dataset = dataset.shuffle(1000).repeat().batch(batch_size)
 	return dataset.make_one_shot_iterator().get_next()
@@ -19,7 +19,7 @@ def main():
 	train_batch_size = 2 ** sequence_length // temp_dividend
 	test_batch_size = 2 ** sequence_length // temp_dividend
 	num_hidden = 16
-	save_dir = "/tfData"
+	save_dir = "/tfData/"
 
 	all_possible = ['{0:020b}'.format(i) for i in range(2 ** sequence_length)]  # Generate all 20-char long sequences of 0s and 1s
 	shuffle(all_possible)
@@ -30,7 +30,7 @@ def main():
 	train_expected_d = [int(sum([sum(x) for x in y])) for y in train_input_d]
 	# No validation set.
 	test_input_d = [toList(i) for i in all_possible[train_batch_size:train_batch_size + test_batch_size]]  # Take test_batch_size of that again for the test set
-	test_expected_d = [np.sum(i) for i in test_input_d]
+	test_expected_d = [int(sum([sum(x) for x in y])) for y in test_input_d]
 	print("datasets organized")
 
 	counter = tf.estimator.Estimator(model_fn=binary_model, model_dir=save_dir, params={
@@ -38,6 +38,10 @@ def main():
 		"sequence_length": sequence_length,
 		"num_hidden": num_hidden})
 	counter.train(input_fn=lambda: input_fn(train_input_d, train_expected_d, 32), steps=100)
+	results = counter.predict(input_fn=lambda: input_fn(test_input_d, test_expected_d))
+
+	for r in results:
+		print(r)
 
 
 if __name__ == "__main__":

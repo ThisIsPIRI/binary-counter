@@ -20,6 +20,7 @@ def main():
 	input_dim = 1
 	data_type = tf.float32
 	save_dir = "/tfData"
+	train_possible = False
 
 	if 'y' == input("Generate datasets?(y/n): "):
 		all_possible = ['{0:020b}'.format(i) for i in range(2 ** sequence_length)] # Generate all 20-char long sequences of 0s and 1s
@@ -32,9 +33,11 @@ def main():
 		# No validation set.
 		test_input_d = [toArray(i) for i in all_possible[train_batch_size:train_batch_size + test_batch_size]] # Take test_batch_size of that again for the test set
 		test_expected_d = [np.sum(i) for i in test_input_d]
-		print("datasets organized")
+
 		train_ds = BinaryDatasets(train_input_d, train_expected_d)
 		test_ds = BinaryDatasets(test_input_d, test_expected_d)
+		print("datasets organized")
+		train_possible = True
 
 	# Build the model
 	counter = BinaryCounter()
@@ -45,13 +48,16 @@ def main():
 		print("Train the model(t), predict with it(p), or exit(E)")
 		yn = input("Choice:")
 		if yn == 't':
-			load = False if input("Load models?(y/n): ") == "n" else True
-			if DEBUG_MODE:
-				counter.train(train_ds, test_ds, tensors, load_model=load)
+			if not train_possible:
+				print("Datasets not generated.")
 			else:
-				counter.train(train_ds, test_ds, tensors, epochs=1501, load_model=load)
+				load = False if input("Load models?(y/n): ") == "n" else True
+				if DEBUG_MODE:
+					counter.train(train_ds, test_ds, tensors, load_model=load)
+				else:
+					counter.train(train_ds, test_ds, tensors, epochs=1501, load_model=load)
 		elif yn == "p":
-			toCount = input(f"The {string_size} letters-long binary string to count:")
+			toCount = input(f"The {sequence_length} letters-long binary string to count:")
 			predicted = onehotToIndices(counter.predict(tensors.input_t, tensors.prediction_t, toCount)[0])
 			print("prediction: ")
 			print(f"{predicted[0][0]} ones, {predicted[0][1] * 100}% sure")

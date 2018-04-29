@@ -31,3 +31,10 @@ def show(data, inFigure):
 	plt.plot(data)
 	plt.draw()
 	plt.pause(0.001)
+
+
+def printEstimatorPred(spec, origData, origGround):
+	most = onehotToIndices(spec["probabilities"])
+	print(f"Predictions for {''.join([str(int(x[0])) for x in origData])}, the ground truth of which is {origGround}:")
+	print(f"{most[0][0]} ones, {most[0][1] * 100:.4f}% sure")
+	print(f"{most[1][0]} ones, {most[1][1] * 100:.4f}% sure")

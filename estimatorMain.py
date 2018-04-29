@@ -1,15 +1,8 @@
-import numpy as np
 from random import shuffle
 import tensorflow as tf
 
 from binestimator import binary_model
-from binaryUtil import toList
-
-
-def input_fn(features, labels, batch_size=32):
-	dataset = tf.data.Dataset.from_tensor_slices((features, labels))
-	dataset = dataset.shuffle(1000).repeat().batch(batch_size)
-	return dataset.make_one_shot_iterator().get_next()
+from binaryUtil import printEstimatorPred, toList
 
 
 def main():
@@ -33,15 +26,33 @@ def main():
 	test_expected_d = [int(sum([sum(x) for x in y])) for y in test_input_d]
 	print("datasets organized")
 
+	def input_fn(features, labels, mode, batch_size=32):
+		dataset = tf.data.Dataset.from_tensor_slices((features, labels))
+		if mode == tf.estimator.ModeKeys.TRAIN:
+			return dataset.shuffle(1000).repeat().batch(batch_size).make_one_shot_iterator().get_next()
+		else:
+			return dataset.batch(batch_size).make_one_shot_iterator().get_next()
+
 	counter = tf.estimator.Estimator(model_fn=binary_model, model_dir=save_dir, params={
 		"data_type": tf.float32,
 		"sequence_length": sequence_length,
 		"num_hidden": num_hidden})
-	counter.train(input_fn=lambda: input_fn(train_input_d, train_expected_d, 32), steps=100)
-	results = counter.predict(input_fn=lambda: input_fn(test_input_d, test_expected_d))
+	counter.train(input_fn=lambda: input_fn(train_input_d, train_expected_d, tf.estimator.ModeKeys.TRAIN), steps=100)
+	results = list(counter.predict(input_fn=lambda: input_fn(test_input_d, test_expected_d, tf.estimator.ModeKeys.PREDICT)))
 
-	for r in results:
-		print(r)
+	for i, r in enumerate(results):
+		printEstimatorPred(r, test_input_d[i], test_expected_d[i])
+
+	while True:
+		print("p: predict, e: exit")
+		what = input("choice: ")
+		if what == 'p':
+			toP = input("data: ")
+			origData = toList(toP)
+			origGround = sum([int(x) for x in toP])
+			printEstimatorPred(list(counter.predict(input_fn=lambda: input_fn([origData], [origGround], tf.estimator.ModeKeys.PREDICT)))[0], origData, origGround)
+		elif what == 'e':
+			break
 
 
 if __name__ == "__main__":

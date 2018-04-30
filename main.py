@@ -2,16 +2,17 @@ import numpy as np
 from random import shuffle
 import tensorflow as tf
 
-from bincount import BinaryCounter, BinaryDatasets, BinaryTensors
+from binCounter import BinaryCounter, BinaryDatasets, BinaryTensors
 from binaryUtil import onehotToIndices, toArray
 
 
 # https://monik.in/a-noobs-guide-to-implementing-rnn-lstm-using-tensorflow/
-# Naming conventions:
+# Styles:
+# PascalCase for classes, camelCase for functions and modules, under_score for variables, CAP_SCORE for "constants"
 # (name)_d or t for raw data or tensors
 def main():
 	DEBUG_MODE = False
-	temp_dividend = 120 if DEBUG_MODE else 20
+	temp_dividend = 120 if DEBUG_MODE else 5
 	sequence_length = 20
 	train_batch_size = 2 ** sequence_length // temp_dividend
 	test_batch_size = 2 ** sequence_length // temp_dividend
@@ -23,7 +24,7 @@ def main():
 	train_possible = False
 
 	if 'y' == input("Generate datasets?(y/n): "):
-		all_possible = ['{0:020b}'.format(i) for i in range(2 ** sequence_length)] # Generate all 20-char long sequences of 0s and 1s
+		all_possible = [f"{i:020b}" for i in range(2 ** sequence_length)] # Generate all 20-char long sequences of 0s and 1s
 		shuffle(all_possible)
 		print("all possibilities generated")
 
@@ -56,7 +57,7 @@ def main():
 					counter.train(train_ds, test_ds, tensors, load_model=load)
 				else:
 					counter.train(train_ds, test_ds, tensors, epochs=1501, load_model=load)
-		elif yn == "p":
+		elif yn == 'p':
 			toCount = input(f"The {sequence_length} letters-long binary string to count:")
 			predicted = onehotToIndices(counter.predict(tensors.input_t, tensors.prediction_t, toCount)[0])
 			print("prediction: ")

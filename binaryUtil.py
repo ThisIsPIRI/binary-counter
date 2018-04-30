@@ -12,29 +12,29 @@ def toList(binString): # Exists because of https://stackoverflow.com/a/49931506
 
 
 def onehotToIndices(arr):
-	firstI = secondI = -1
-	firstVal = secondVal = -99999
+	first_i = second_i = -1
+	first_val = second_val = -99999
 	for i, val in enumerate(arr):
-		if val > firstVal:
-			secondVal = firstVal
-			secondI = firstI
-			firstVal= val
-			firstI = i
-		elif val > secondVal:
-			secondVal = val
-			secondI = i
-	return (firstI, firstVal), (secondI, secondVal)
+		if val > first_val:
+			second_val = first_val
+			second_i = first_i
+			first_val= val
+			first_i = i
+		elif val > second_val:
+			second_val = val
+			second_i = i
+	return (first_i, first_val), (second_i, second_val)
 
 
-def show(data, inFigure):
-	plt.figure(inFigure)
+def show(data, in_figure):
+	plt.figure(in_figure)
 	plt.plot(data)
 	plt.draw()
 	plt.pause(0.001)
 
 
-def printEstimatorPred(spec, origData, origGround):
+def printEstimatorPred(spec, orig_data, orig_ground):
 	most = onehotToIndices(spec["probabilities"])
-	print(f"Predictions for {''.join([str(int(x[0])) for x in origData])}, the ground truth of which is {origGround}:")
+	print(f"Predictions for {''.join([str(int(x[0])) for x in orig_data])}, the ground truth of which is {orig_ground}:")
 	print(f"{most[0][0]} ones, {most[0][1] * 100:.4f}% sure")
 	print(f"{most[1][0]} ones, {most[1][1] * 100:.4f}% sure")

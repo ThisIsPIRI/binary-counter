@@ -27,7 +27,7 @@ class BinaryDatasets:
 		return self.input_d, self.expected_d
 
 
-class BinaryCounter: # TODO: change into an Estimator
+class BinaryCounter:
 	SAVE_DIR = "/tfData"
 
 	def buildRnn(self, sequence_length, num_hidden=16, data_type=tf.float32):
@@ -41,7 +41,7 @@ class BinaryCounter: # TODO: change into an Estimator
 		transposed_temp = tf.transpose(rnn_output_t, [1, 0, 2])
 		last_timestep_t = tf.gather(transposed_temp, int(transposed_temp.get_shape()[0]) - 1)
 		# Set up a dense layer to process the final output
-		dense_weight_t = tf.Variable(tf.truncated_normal((num_hidden, string_size + 1))) # int(expected_t.get_shape()[1] can be also used instead of string_size + 1
+		dense_weight_t = tf.Variable(tf.truncated_normal((num_hidden, sequence_length + 1))) # int(expected_t.get_shape()[1] can be also used instead of string_size + 1
 		dense_bias_t = tf.Variable(0.1)
 		prediction_t = tf.nn.softmax(tf.matmul(last_timestep_t, dense_bias_t + dense_weight_t))
 		# Set up the error function and optimizer
@@ -80,10 +80,10 @@ class BinaryCounter: # TODO: change into an Estimator
 					# Calculate and plot test errors
 					test_errors.append(sess.run(error_t, feed_dict=test_feed))
 					show(test_errors, 2)
-			print("training complete")
-			print("train samples:")
-			self.printPred(sess, expected_t, prediction_t, train_feed)
-			print("test samples:")
+			# print("training complete")
+			# print("train samples:")
+			# self.printPred(sess, expected_t, prediction_t, train_feed)
+			# print("test samples:")
 			self.printPred(sess, expected_t, prediction_t, test_feed)
 			tf.summary.FileWriter(self.SAVE_DIR).add_graph(sess.graph)
 			saver.save(sess, self.SAVE_DIR + '/' + "rnnTestModel.ckpt")

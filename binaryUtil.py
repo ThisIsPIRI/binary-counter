@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 
 def toArray(binString):
-	# Wrap the resulting ints in an array with length of 1 to make the inputs 3-dimensional.
+	# Wrap the resulting ints in a list with length of 1 to make the inputs 3-dimensional.
 	return np.array([[int(i)] for i in binString])
 
 
